@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Generator</title>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- html2pdf.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* General Body and Container Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray */
+            color: #1f2937; /* Dark text */
+            transition: background-color 0.3s, color 0.3s;
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 24px; /* p-6 */
+        }
+        @media (min-width: 1024px) { /* lg: breakpoint */
+            .container {
+                padding: 40px; /* lg:p-10 */
+            }
+        }
+
+        h1 {
+            font-size: 30px; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            margin-bottom: 24px; /* mb-6 */
+            text-align: center;
+        }
+
+        /* Dark Mode Styles */
+        body.dark {
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+        body.dark input,
+        body.dark textarea,
+        body.dark select,
+        body.dark table {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            border-color: #4a5568;
+        }
+        body.dark button {
+            background-color: #4a5568;
+            color: #e2e8f0;
+        }
+        body.dark .invoice-preview {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            border-color: #4a5568; /* Added for dark mode border */
+        }
+        body.dark .form-section {
+            background-color: #2d3748;
+            border-color: #4a5568;
+        }
+        body.dark label {
+            color: #a0aec0; /* Dark mode label color */
+        }
+        body.dark .item-row {
+            background-color: #4a5568;
+            border-color: #6a7c93;
+        }
+        body.dark .item-row input {
+            background-color: #4a5568;
+            border-color: #6a7c93;
+            color: #e2e8f0;
+        }
+        body.dark .item-row span {
+             color: #e2e8f0;
+        }
+        body.dark .preview-table thead tr {
+            background-color: #3b82f6; /* Adjusted for contrast in dark mode */
+            color: #e0f2fe; /* Light blue text */
+        }
+        body.dark .preview-table thead th {
+             border-color: #2b6cb0;
+        }
+        body.dark .preview-table tbody tr {
+             border-color: #4a5568;
+        }
+        body.dark .text-blue-700 {
+            color: #63b3ed; /* Lighter blue for emphasis in dark mode */
+        }
+        body.dark .text-gray-700 {
+            color: #a0aec0;
+        }
+        body.dark .text-gray-600 {
+            color: #a0aec0;
+        }
+        body.dark .text-gray-500 {
+            color: #a0aec0;
+        }
+        body.dark .file-input-wrapper {
+            background-color: #2d3748;
+            color: #e2e8f0;
+        }
+
+        /* Dark Mode Toggle */
+        .dark-mode-toggle {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 16px; /* mb-4 */
+        }
+        .dark-mode-toggle label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .dark-mode-toggle .relative {
+            position: relative;
+            width: 56px; /* w-14 */
+            height: 32px; /* h-8 */
+            border-radius: 9999px; /* rounded-full */
+            background-color: #4a5568; /* bg-gray-600 */
+        }
+        .dark-mode-toggle input[type="checkbox"] {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        .dark-mode-toggle .dot {
+            position: absolute;
+            left: 4px; /* left-1 */
+            top: 4px; /* top-1 */
+            width: 24px; /* w-6 */
+            height: 24px; /* h-6 */
+            border-radius: 9999px; /* rounded-full */
+            background-color: #ffffff; /* bg-white */
+            transition: transform 0.3s ease;
+        }
+        .dark-mode-toggle input:checked + .block + .dot {
+            transform: translateX(24px); /* Move dot to the right */
+        }
+        .dark-mode-toggle .label-text {
+            margin-left: 12px; /* ml-3 */
+            color: #4b5563; /* text-gray-700 */
+            font-weight: 500; /* font-medium */
+        }
+        body.dark .dark-mode-toggle .label-text {
+            color: #d1d5db; /* dark:text-gray-300 */
+        }
+
+        /* Grid Layout */
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 32px; /* gap-8 */
+        }
+        @media (min-width: 1024px) { /* lg: breakpoint */
+            .grid-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Input Form Sections */
+        .form-section {
+            background-color: #ffffff;
+            padding: 24px; /* p-6 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-section h2 {
+            font-size: 24px; /* text-2xl */
+            font-weight: 600; /* font-semibold */
+            margin-bottom: 16px; /* mb-4 */
+        }
+
+        .form-section h3 {
+            font-size: 20px; /* text-xl */
+            font-weight: 500; /* font-medium */
+            margin-bottom: 12px; /* mb-3 */
+        }
+
+        .form-group {
+            margin-bottom: 16px; /* mb-4 */
+        }
+
+        .form-group.border-bottom {
+            border-bottom: 1px solid #e5e7eb; /* border-b */
+            padding-bottom: 16px; /* pb-4 */
+        }
+
+        label {
+            display: block;
+            font-size: 14px; /* text-sm */
+            font-weight: 500; /* font-medium */
+            color: #374151; /* text-gray-700 */
+            margin-bottom: 4px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        textarea {
+            display: block;
+            width: 100%;
+            margin-top: 4px; /* mt-1 */
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            border-radius: 6px; /* rounded-md */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* shadow-sm */
+            padding: 8px; /* p-2 */
+            box-sizing: border-box;
+            font-size: 14px;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6; /* focus:border-blue-500 */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); /* focus:ring-blue-500, focus:ring-2, focus:ring-offset-2 */
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        input[readonly] {
+            background-color: #f9fafb; /* bg-gray-50 */
+            cursor: not-allowed;
+        }
+
+        /* File Input (Logo Upload) */
+        .file-input-wrapper {
+            margin-top: 4px;
+            display: block;
+            width: 100%;
+            font-size: 14px; /* text-sm */
+            color: #6b7280; /* text-gray-500 */
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            background-color: #ffffff;
+            overflow: hidden;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        .file-input-wrapper input[type="file"] {
+            display: none; /* Hide original file input */
+        }
+        .file-input-label {
+            display: block;
+            padding: 8px 16px;
+            margin-right: 16px; /* file:mr-4 */
+            border-radius: 9999px; /* file:rounded-full */
+            border: 0; /* file:border-0 */
+            font-size: 14px; /* file:text-sm */
+            font-weight: 600; /* file:font-semibold */
+            background-color: #eff6ff; /* file:bg-blue-50 */
+            color: #1d4ed8; /* file:text-blue-700 */
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out;
+            display: inline-block; /* To make it clickable */
+        }
+        .file-input-label:hover {
+            background-color: #e0f2fe; /* hover:file:bg-blue-100 */
+        }
+        .file-name {
+            display: inline-block;
+            margin-left: 8px;
+            vertical-align: middle;
+            color: #4b5563;
+        }
+        body.dark .file-input-label {
+            background-color: #4a5568;
+            color: #e2e8f0;
+        }
+        body.dark .file-input-wrapper {
+            background-color: #2d3748;
+        }
+        body.dark .file-name {
+            color: #e2e8f0;
+        }
+
+        /* Grid for multiple inputs in a row */
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px; /* gap-4 */
+        }
+        @media (min-width: 768px) { /* md: breakpoint */
+            .input-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Item Row Styling */
+        .item-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px; /* gap-2 */
+            margin-bottom: 16px; /* mb-4 */
+            padding: 12px; /* p-3 */
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            border-radius: 6px; /* rounded-md */
+            background-color: #f9fafb; /* bg-gray-50 */
+        }
+        @media (min-width: 640px) { /* sm: breakpoint */
+            .item-row {
+                flex-direction: row;
+                align-items: center; /* Align items vertically in row layout */
+            }
+        }
+
+        .item-row input {
+            flex-grow: 1; /* flex-grow */
+            min-width: 80px; /* Ensure inputs don't collapse too much */
+        }
+        .item-row input[type="number"] {
+            text-align: center;
+        }
+        .item-row input:nth-child(2) { /* Quantity */
+            width: 80px; /* w-20 */
+        }
+        .item-row input:nth-child(3) { /* Unit Price */
+            width: 112px; /* w-28 */
+            text-align: right;
+        }
+        .item-row .item-total-display { /* Added class for targeting the span */
+            width: 80px; /* w-20 */
+            padding: 8px; /* py-2 px-2 */
+            font-size: 14px; /* text-sm */
+            font-weight: 600; /* font-semibold */
+            text-align: right;
+            white-space: nowrap; /* Prevent wrapping for currency */
+        }
+
+        /* Buttons */
+        button {
+            padding: 12px 24px; /* px-6 py-3 */
+            border-radius: 6px; /* rounded-md */
+            font-weight: 600; /* font-semibold */
+            transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            border: none;
+            cursor: pointer;
+        }
+
+        button.add-item-btn {
+            margin-top: 16px; /* mt-4 */
+            background-color: #3b82f6; /* bg-blue-500 */
+            color: #ffffff;
+        }
+        button.add-item-btn:hover {
+            background-color: #2563eb; /* hover:bg-blue-600 */
+        }
+
+        button.remove-item-btn {
+            padding: 4px 12px; /* px-3 py-1 */
+            background-color: #ef4444; /* bg-red-500 */
+            color: #ffffff;
+            font-size: 14px; /* text-sm */
+        }
+        button.remove-item-btn:hover {
+            background-color: #dc2626; /* hover:bg-red-600 */
+        }
+
+        button.download-pdf-btn {
+            background-color: #22c55e; /* bg-green-500 */
+            color: #ffffff;
+        }
+        button.download-pdf-btn:hover {
+            background-color: #16a34a; /* hover:bg-green-600 */
+        }
+
+        button.print-invoice-btn {
+            background-color: #6366f1; /* bg-indigo-500 */
+            color: #ffffff;
+        }
+        button.print-invoice-btn:hover {
+            background-color: #4f46e5; /* hover:bg-indigo-600 */
+        }
+
+        button.clear-form-btn {
+            background-color: #f59e0b; /* bg-yellow-500 */
+            color: #ffffff;
+        }
+        button.clear-form-btn:hover {
+            background-color: #d97706; /* hover:bg-yellow-600 */
+        }
+
+        button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); /* focus:ring-2, focus:ring-blue-500, focus:ring-offset-2 */
+        }
+        button.download-pdf-btn:focus {
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+        }
+        button.print-invoice-btn:focus {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+        button.clear-form-btn:focus {
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
+        }
+
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 16px; /* gap-4 */
+            margin-top: 24px; /* mt-6 */
+        }
+        @media (min-width: 640px) { /* sm: breakpoint */
+            .action-buttons {
+                flex-direction: row;
+            }
+        }
+
+        /* Invoice Preview */
+        .invoice-preview-container {
+            background-color: #ffffff;
+            padding: 32px; /* p-8 */
+            border-radius: 8px; /* rounded-lg */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .invoice-preview {
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            padding: 32px; /* p-8 */
+            border-radius: 8px; /* rounded-md */
+            background-color: #ffffff;
+            color: #374151; /* text-gray-800 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* box-shadow */
+            /* Responsive adjustments for screen display */
+            width: 100%; /* Take full width of container */
+            max-width: 210mm; /* Max width equivalent to A4 */
+            margin: 0 auto; /* Center the preview */
+            box-sizing: border-box;
+        }
+
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px; /* mb-8 */
+        }
+
+        .invoice-header img {
+            max-height: 96px; /* max-h-24 */
+            margin-bottom: 16px; /* mb-4 */
+        }
+
+        .invoice-header .business-name {
+            font-weight: 700; /* font-bold */
+            font-size: 24px; /* text-2xl */
+        }
+
+        .invoice-header .business-address {
+            font-size: 14px; /* text-sm */
+            color: #4b5563; /* text-gray-600 */
+        }
+
+        .invoice-header .invoice-title {
+            font-size: 40px; /* text-4xl */
+            font-weight: 800; /* font-extrabold */
+            color: #2563eb; /* text-blue-700 */
+            margin-bottom: 8px; /* mb-2 */
+        }
+
+        .invoice-details p {
+            font-size: 14px; /* text-sm */
+        }
+        .invoice-details .font-semibold {
+            font-weight: 600; /* font-semibold */
+        }
+
+        .client-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px; /* gap-4 */
+            margin-bottom: 32px; /* mb-8 */
+        }
+        .client-info-grid p.font-semibold {
+            font-weight: 600;
+            color: #374151;
+        }
+        .client-info-grid p.text-lg {
+            font-size: 18px;
+        }
+        .client-info-grid p.text-sm {
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+
+        /* Preview Table */
+        .preview-table {
+            width: 100%;
+            text-align: left;
+            border-collapse: collapse;
+            margin-bottom: 32px; /* mb-8 */
+        }
+
+        .preview-table thead tr {
+            background-color: #dbeafe; /* bg-blue-100 */
+            color: #1e40af; /* text-blue-800 */
+        }
+
+        .preview-table th,
+        .preview-table td {
+            padding: 8px 16px; /* py-2 px-4 */
+            border-bottom: 1px solid #bfdbfe; /* border-b border-blue-200 */
+        }
+
+        .preview-table th:nth-child(2),
+        .preview-table td:nth-child(2) { /* Qty column */
+            text-align: center;
+        }
+
+        .preview-table th:nth-child(3),
+        .preview-table td:nth-child(3),
+        .preview-table th:nth-child(4),
+        .preview-table td:nth-child(4) { /* Unit Price, Total columns */
+            text-align: right;
+        }
+
+        .preview-table tbody tr {
+            border-bottom: 1px solid #f3f4f6; /* border-b border-gray-100 */
+        }
+
+        .preview-table td.text-gray-500 {
+            color: #6b7280;
+        }
+
+        /* Totals Section */
+        .totals-section {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .totals-section > div {
+            width: 100%;
+        }
+        @media (min-width: 768px) { /* md: breakpoint */
+            .totals-section > div {
+                width: 50%; /* md:w-1/2 */
+            }
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 8px; /* py-2 */
+            padding-bottom: 8px; /* py-2 */
+            border-bottom: 1px solid #e5e7eb; /* border-b */
+        }
+
+        .total-row span.font-semibold {
+            font-weight: 600;
+        }
+
+        .grand-total-row {
+            font-size: 20px; /* text-xl */
+            font-weight: 700; /* font-bold */
+            color: #2563eb; /* text-blue-700 */
+        }
+
+        /* Notes Section */
+        .notes-section {
+            margin-top: 32px; /* mt-8 */
+            font-size: 14px; /* text-sm */
+            color: #4b5563; /* text-gray-600 */
+            border-top: 1px solid #e5e7eb; /* border-t */
+            padding-top: 16px; /* pt-4 */
+        }
+        .notes-section p.font-semibold {
+            font-weight: 600;
+            margin-bottom: 8px; /* mb-2 */
+        }
+
+        /* Hide elements for printing */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background-color: white !important;
+                color: black !important;
+            }
+            .invoice-preview-container {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+            }
+            .invoice-preview {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 0;
+                /* Apply A4 dimensions for printing only */
+                min-height: 297mm;
+                width: 210mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Invoice Generator</h1>
+
+        <!-- Dark Mode Toggle -->
+        <div class="dark-mode-toggle no-print">
+            <label for="darkModeToggle">
+                <div class="relative block"></div>
+                <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
+                <div class="dot"></div>
+                <div class="label-text">Dark Mode</div>
+            </label>
+        </div>
+
+        <div class="grid-container">
+            <!-- Input Form -->
+            <div class="form-section no-print">
+                <h2>Invoice Details</h2>
+
+                <!-- Business Info -->
+                <div class="form-group border-bottom">
+                    <h3>Your Business Info</h3>
+                    <div class="form-group">
+                        <label for="businessName">Business Name</label>
+                        <input type="text" id="businessName" oninput="updateInvoicePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label for="businessAddress">Address</label>
+                        <textarea id="businessAddress" rows="3" oninput="updateInvoicePreview()"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="businessLogo">Logo (Optional)</label>
+                        <div class="file-input-wrapper">
+                            <label for="businessLogo" class="file-input-label">Choose File</label>
+                            <span id="logoFileName" class="file-name">No file chosen</span>
+                            <input type="file" id="businessLogo" accept="image/*" onchange="handleLogoUpload()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Client Info -->
+                <div class="form-group border-bottom">
+                    <h3>Client Info</h3>
+                    <div class="form-group">
+                        <label for="clientName">Client Name</label>
+                        <input type="text" id="clientName" oninput="updateInvoicePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label for="clientAddress">Client Address</label>
+                        <textarea id="clientAddress" rows="3" oninput="updateInvoicePreview()"></textarea>
+                    </div>
+                </div>
+
+                <!-- Invoice Details -->
+                <div class="form-group border-bottom">
+                    <h3>Invoice Details</h3>
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label for="invoiceNumber">Invoice Number</label>
+                            <input type="text" id="invoiceNumber" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="invoiceDate">Date</label>
+                            <input type="date" id="invoiceDate" oninput="updateInvoicePreview()">
+                        </div>
+                        <div class="form-group">
+                            <label for="dueDate">Due Date</label>
+                            <input type="date" id="dueDate" oninput="updateInvoicePreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Itemized Table Input -->
+                <div class="form-group border-bottom">
+                    <h3>Items</h3>
+                    <div id="itemsContainer">
+                        <!-- Item rows will be added here by JS -->
+                    </div>
+                    <button type="button" class="add-item-btn" onclick="addRow()">Add Item</button>
+                </div>
+
+                <!-- Tax and Discount -->
+                <div class="form-group border-bottom">
+                    <h3>Adjustments</h3>
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label for="taxRate">Tax (%)</label>
+                            <input type="number" id="taxRate" min="0" value="0" oninput="updateInvoicePreview()">
+                        </div>
+                        <div class="form-group">
+                            <label for="discount">Discount</label>
+                            <input type="number" id="discount" min="0" value="0" oninput="updateInvoicePreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes/Terms -->
+                <div class="form-group">
+                    <h3>Notes & Terms</h3>
+                    <div class="form-group">
+                        <label for="invoiceNotes">Notes or Terms and Conditions</label>
+                        <textarea id="invoiceNotes" rows="5" oninput="updateInvoicePreview()"></textarea>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button type="button" class="download-pdf-btn" onclick="downloadPdf()">Download as PDF</button>
+                    <button type="button" class="print-invoice-btn" onclick="printInvoice()">Print Invoice</button>
+                    <button type="button" class="clear-form-btn" onclick="clearForm()">Clear Form</button>
+                </div>
+            </div>
+
+            <!-- Invoice Preview -->
+            <div id="invoice-preview-container" class="invoice-preview-container">
+                <div id="invoice-preview" class="invoice-preview">
+                    <!-- Invoice content will be dynamically generated here -->
+                    <div class="invoice-header">
+                        <div>
+                            <img id="previewBusinessLogo" src="" alt="Business Logo" class="hidden">
+                            <p class="business-name" id="previewBusinessName"></p>
+                            <p class="business-address" id="previewBusinessAddress"></p>
+                        </div>
+                        <div class="invoice-details text-right">
+                            <h2 class="invoice-title">INVOICE</h2>
+                            <p><span class="font-semibold">Invoice No:</span> <span id="previewInvoiceNumber"></span></p>
+                            <p><span class="font-semibold">Date:</span> <span id="previewInvoiceDate"></span></p>
+                            <p><span class="font-semibold">Due Date:</span> <span id="previewDueDate"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="client-info-grid">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-700">Bill To:</p>
+                            <p class="font-semibold text-lg" id="previewClientName"></p>
+                            <p class="text-sm text-gray-600" id="previewClientAddress"></p>
+                        </div>
+                    </div>
+
+                    <table class="preview-table">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-right">Unit Price</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewItemsTableBody">
+                            <!-- Items will be inserted here -->
+                        </tbody>
+                    </table>
+
+                    <div class="totals-section">
+                        <div>
+                            <div class="total-row">
+                                <span class="font-semibold">Subtotal:</span>
+                                <span id="previewSubtotal">₦0.00</span>
+                            </div>
+                            <div class="total-row">
+                                <span class="font-semibold">Tax (<span id="previewTaxRate">0</span>%):</span>
+                                <span id="previewTaxAmount">₦0.00</span>
+                            </div>
+                            <div class="total-row">
+                                <span class="font-semibold">Discount:</span>
+                                <span id="previewDiscount">-₦0.00</span>
+                            </div>
+                            <div class="total-row grand-total-row">
+                                <span>TOTAL:</span>
+                                <span id="previewGrandTotal">₦0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="notes-section">
+                        <p class="font-semibold">Notes & Terms:</p>
+                        <p id="previewInvoiceNotes"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const businessNameInput = document.getElementById('businessName');
+        const businessAddressInput = document.getElementById('businessAddress');
+        const businessLogoInput = document.getElementById('businessLogo');
+        const logoFileNameSpan = document.getElementById('logoFileName');
+        const clientNameInput = document.getElementById('clientName');
+        const clientAddressInput = document.getElementById('clientAddress');
+        const invoiceNumberInput = document.getElementById('invoiceNumber');
+        const invoiceDateInput = document.getElementById('invoiceDate');
+        const dueDateInput = document.getElementById('dueDate');
+        const itemsContainer = document.getElementById('itemsContainer');
+        const taxRateInput = document.getElementById('taxRate');
+        const discountInput = document.getElementById('discount');
+        const invoiceNotesInput = document.getElementById('invoiceNotes');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+
+        // Preview Elements
+        const previewBusinessLogo = document.getElementById('previewBusinessLogo');
+        const previewBusinessName = document.getElementById('previewBusinessName');
+        const previewBusinessAddress = document.getElementById('previewBusinessAddress');
+        const previewInvoiceNumber = document.getElementById('previewInvoiceNumber');
+        const previewInvoiceDate = document.getElementById('previewInvoiceDate');
+        // FIX: Corrected the ID to target the span in the preview, not the input.
+        const previewDueDate = document.getElementById('previewDueDate');
+        const previewClientName = document.getElementById('previewClientName');
+        const previewClientAddress = document.getElementById('previewClientAddress');
+        const previewItemsTableBody = document.getElementById('previewItemsTableBody');
+        const previewSubtotal = document.getElementById('previewSubtotal');
+        const previewTaxRate = document.getElementById('previewTaxRate');
+        const previewTaxAmount = document.getElementById('previewTaxAmount');
+        const previewDiscount = document.getElementById('previewDiscount');
+        const previewGrandTotal = document.getElementById('previewGrandTotal');
+        const previewInvoiceNotes = document.getElementById('previewInvoiceNotes');
+        const invoicePreviewElement = document.getElementById('invoice-preview');
+
+        // Initialize state for items
+        let items = [];
+
+        // Function to format date to a readable string (e.g., "Jan 01, 2023")
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('en-US', options);
+        }
+
+        // Function to format currency
+        function formatCurrency(amount) {
+            return `₦${parseFloat(amount).toFixed(2)}`; // Changed currency symbol to Naira
+        }
+
+        // Function to generate unique invoice number with date
+        function generateInvoiceNumber() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            return `INV-${year}${month}${day}-${hours}${minutes}${seconds}`;
+        }
+
+        // Function to handle logo upload
+        function handleLogoUpload() {
+            const file = businessLogoInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewBusinessLogo.src = e.target.result;
+                    previewBusinessLogo.classList.remove('hidden');
+                    logoFileNameSpan.textContent = file.name;
+                    updateInvoicePreview(); // Re-render preview with new logo
+                    saveInvoiceData(); // Save the base64 string of the logo
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewBusinessLogo.src = '';
+                previewBusinessLogo.classList.add('hidden');
+                logoFileNameSpan.textContent = 'No file chosen';
+                updateInvoicePreview();
+                saveInvoiceData();
+            }
+        }
+
+        // Function to add a new item row to the input form
+        function addRow() {
+            const newItem = {
+                description: '',
+                quantity: 1,
+                unitPrice: 0,
+                total: 0
+            };
+            items.push(newItem);
+            renderItemsInput(); // Full re-render when adding/removing rows
+            updateInvoicePreview();
+            saveInvoiceData();
+        }
+
+        // Function to remove an item row from the input form
+        function removeItem(index) {
+            items.splice(index, 1);
+            renderItemsInput(); // Full re-render when adding/removing rows
+            updateInvoicePreview();
+            saveInvoiceData();
+        }
+
+        // Function to update an item's data when input changes
+        function updateItem(index, field, inputElement) {
+            const value = inputElement.value; // Get value from the element that triggered the event
+
+            if (field === 'quantity' || field === 'unitPrice') {
+                items[index][field] = parseFloat(value) || 0;
+            } else {
+                items[index][field] = value;
+            }
+
+            // Recalculate item total
+            items[index].total = items[index].quantity * items[index].unitPrice;
+
+            // Find the span for total in the current row and update it directly
+            const currentRow = inputElement.closest('.item-row');
+            if (currentRow) {
+                const totalSpan = currentRow.querySelector('.item-total-display');
+                if (totalSpan) {
+                    totalSpan.textContent = formatCurrency(items[index].total);
+                }
+            }
+
+            // Only update the main invoice preview (which does not redraw the input fields)
+            updateInvoicePreview();
+            saveInvoiceData();
+        }
+
+        // Function to render all item input rows
+        function renderItemsInput() {
+            itemsContainer.innerHTML = ''; // Clear existing rows
+            items.forEach((item, index) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.classList.add('item-row');
+                rowDiv.innerHTML = `
+                    <input type="text" placeholder="Description" value="${item.description}"
+                        oninput="updateItem(${index}, 'description', this)">
+                    <input type="number" placeholder="Qty" min="1" value="${item.quantity}"
+                        oninput="updateItem(${index}, 'quantity', this)">
+                    <input type="number" placeholder="Unit Price" min="0" step="0.01" value="${item.unitPrice}"
+                        oninput="updateItem(${index}, 'unitPrice', this)">
+                    <span class="item-total-display">${formatCurrency(item.total)}</span>
+                    <button type="button" class="remove-item-btn" onclick="removeItem(${index})">Remove</button>
+                `;
+                itemsContainer.appendChild(rowDiv);
+            });
+        }
+
+        // Function to calculate subtotal, tax, discount, and grand total
+        function calculateTotals() {
+            let subtotal = 0;
+            items.forEach(item => {
+                subtotal += item.total;
+            });
+
+            const taxRate = parseFloat(taxRateInput.value) || 0;
+            const discount = parseFloat(discountInput.value) || 0;
+
+            const taxAmount = subtotal * (taxRate / 100);
+            const grandTotal = subtotal + taxAmount - discount;
+
+            return { subtotal, taxAmount, discount, grandTotal, taxRate };
+        }
+
+        // Function to update the invoice preview in real-time
+        function updateInvoicePreview() {
+            // Update Business Info
+            previewBusinessLogo.src = businessLogoInput.files[0] ? URL.createObjectURL(businessLogoInput.files[0]) : (localStorage.getItem('invoiceLogo') || '');
+            if (previewBusinessLogo.src) {
+                previewBusinessLogo.classList.remove('hidden');
+            } else {
+                previewBusinessLogo.classList.add('hidden');
+            }
+            previewBusinessName.textContent = businessNameInput.value || 'Your Business Name';
+            previewBusinessAddress.textContent = businessAddressInput.value || 'Your Business Address';
+
+            // Update Client Info
+            previewClientName.textContent = clientNameInput.value || 'Client Name';
+            previewClientAddress.textContent = clientAddressInput.value || 'Client Address';
+
+            // Update Invoice Details
+            previewInvoiceNumber.textContent = invoiceNumberInput.value;
+            previewInvoiceDate.textContent = formatDate(invoiceDateInput.value);
+            previewDueDate.textContent = formatDate(dueDateInput.value); // Now targets the correct preview element
+
+            // Update Itemized Table
+            previewItemsTableBody.innerHTML = '';
+            if (items.length === 0) {
+                previewItemsTableBody.innerHTML = `<tr><td colspan="4" class="py-2 px-4 text-center text-gray-500">No items added.</td></tr>`;
+            } else {
+                items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.description || 'N/A'}</td>
+                        <td>${item.quantity}</td>
+                        <td class="text-right">${formatCurrency(item.unitPrice)}</td>
+                        <td class="text-right">${formatCurrency(item.total)}</td>
+                    `;
+                    previewItemsTableBody.appendChild(row);
+                });
+            }
+
+
+            // Update Totals
+            const { subtotal, taxAmount, discount, grandTotal, taxRate } = calculateTotals();
+            previewSubtotal.textContent = formatCurrency(subtotal);
+            previewTaxRate.textContent = taxRate;
+            previewTaxAmount.textContent = formatCurrency(taxAmount);
+            previewDiscount.textContent = formatCurrency(discount);
+            previewGrandTotal.textContent = formatCurrency(grandTotal);
+
+            // Update Notes
+            previewInvoiceNotes.textContent = invoiceNotesInput.value;
+
+            saveInvoiceData(); // Save data to local storage on every update
+        }
+
+        // Function to download the invoice as PDF
+        function downloadPdf() {
+            const element = document.getElementById('invoice-preview');
+            const opt = {
+                margin: 10,
+                filename: `invoice-${invoiceNumberInput.value}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            // It's good practice to ensure rendering is complete, a small timeout can help, especially for complex DOM
+            setTimeout(() => {
+                html2pdf().set(opt).from(element).save();
+            }, 50); // Small delay to allow DOM to settle
+        }
+
+        // Function to print the invoice
+        function printInvoice() {
+            window.print();
+        }
+
+        // Function to toggle dark mode
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark');
+            if (document.body.classList.contains('dark')) {
+                localStorage.setItem('theme', 'dark');
+            } else {
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Function to save invoice data to localStorage
+        function saveInvoiceData() {
+            const data = {
+                businessName: businessNameInput.value,
+                businessAddress: businessAddressInput.value,
+                businessLogo: previewBusinessLogo.src, // Save base64 string
+                clientName: clientNameInput.value,
+                clientAddress: clientAddressInput.value,
+                invoiceNumber: invoiceNumberInput.value,
+                invoiceDate: invoiceDateInput.value,
+                dueDate: dueDateInput.value,
+                items: items,
+                taxRate: taxRateInput.value,
+                discount: discountInput.value,
+                invoiceNotes: invoiceNotesInput.value,
+                darkMode: document.body.classList.contains('dark')
+            };
+            localStorage.setItem('invoiceData', JSON.stringify(data));
+        }
+
+        // Function to load invoice data from localStorage
+        function loadInvoiceData() {
+            const savedData = localStorage.getItem('invoiceData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                businessNameInput.value = data.businessName || '';
+                businessAddressInput.value = data.businessAddress || '';
+                if (data.businessLogo) {
+                    previewBusinessLogo.src = data.businessLogo;
+                    previewBusinessLogo.classList.remove('hidden');
+                } else {
+                    previewBusinessLogo.classList.add('hidden');
+                }
+                clientNameInput.value = data.clientName || '';
+                clientAddressInput.value = data.clientAddress || '';
+                invoiceNumberInput.value = data.invoiceNumber || generateInvoiceNumber(); // Keep existing or generate new
+                invoiceDateInput.value = data.invoiceDate || new Date().toISOString().split('T')[0];
+                dueDateInput.value = data.dueDate || '';
+                items = data.items || [];
+                taxRateInput.value = data.taxRate || 0;
+                discountInput.value = data.discount || 0;
+                invoiceNotesInput.value = data.invoiceNotes || '';
+
+                if (data.darkMode) {
+                    document.body.classList.add('dark');
+                    darkModeToggle.checked = true;
+                } else {
+                    document.body.classList.remove('dark');
+                    darkModeToggle.checked = false;
+                }
+                // Update logo file name span if a logo was loaded from storage
+                if (data.businessLogo && businessLogoInput.files.length === 0) {
+                     // Attempt to get filename from base64 if possible, otherwise a generic message
+                     const parts = data.businessLogo.split(';base64,');
+                     if (parts.length > 0 && parts[0].includes('image/')) {
+                         logoFileNameSpan.textContent = 'Loaded Logo'; // Cannot extract original name from base64
+                     }
+                } else if (businessLogoInput.files.length > 0) {
+                    logoFileNameSpan.textContent = businessLogoInput.files[0].name;
+                } else {
+                    logoFileNameSpan.textContent = 'No file chosen';
+                }
+
+                renderItemsInput(); // Render items input fields
+                updateInvoicePreview(); // Update preview after loading
+            } else {
+                // If no saved data, set initial values
+                invoiceNumberInput.value = generateInvoiceNumber();
+                invoiceDateInput.value = new Date().toISOString().split('T')[0]; // Current date
+                addRow(); // Add one initial item row
+                updateInvoicePreview();
+            }
+        }
+
+        // Function to clear all form fields and local storage
+        function clearForm() {
+            // Clear input fields
+            businessNameInput.value = '';
+            businessAddressInput.value = '';
+            businessLogoInput.value = ''; // Clear file input
+            previewBusinessLogo.src = '';
+            previewBusinessLogo.classList.add('hidden');
+            logoFileNameSpan.textContent = 'No file chosen';
+
+            clientNameInput.value = '';
+            clientAddressInput.value = '';
+
+            invoiceNumberInput.value = generateInvoiceNumber(); // Generate new on clear
+            invoiceDateInput.value = new Date().toISOString().split('T')[0];
+            dueDateInput.value = '';
+
+            items = []; // Clear items array
+            renderItemsInput(); // Clear item input rows
+
+            taxRateInput.value = 0;
+            discountInput.value = 0;
+            invoiceNotesInput.value = '';
+
+            // Clear local storage
+            localStorage.removeItem('invoiceData');
+            localStorage.removeItem('invoiceLogo'); // Ensure logo is also cleared
+            localStorage.setItem('theme', 'light'); // Reset theme to light on clear
+            document.body.classList.remove('dark');
+            darkModeToggle.checked = false;
+
+            // Update preview after clearing
+            updateInvoicePreview();
+        }
+
+
+        // Initial setup on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInvoiceData(); // Load data or set initial values
+            // Add event listeners for all relevant form inputs to trigger preview updates
+            document.querySelectorAll('input, textarea, select').forEach(element => {
+                // Exclude the file input and dark mode toggle from the generic input listener
+                // Item inputs handle their own specific updates via updateItem()
+                if (element.id !== 'businessLogo' && element.id !== 'darkModeToggle' && !element.closest('.item-row')) {
+                    element.addEventListener('input', updateInvoicePreview);
+                }
+            });
+
+            // Ensure dark mode toggle reflects localStorage preference on load
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark');
+                darkModeToggle.checked = true;
+            } else {
+                document.body.classList.remove('dark');
+                darkModeToggle.checked = false;
+            }
+        });
+
+    </script>
+</body>
+</html>
